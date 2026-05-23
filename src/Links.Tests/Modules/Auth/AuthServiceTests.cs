@@ -31,7 +31,7 @@ public sealed class AuthServiceTests : IDisposable
         var tokens = new TokenService(config);
         var dataProtection = new FakeDataProtectionProvider();
         _cache = new MemoryCache(new MemoryCacheOptions());
-        _mfa = new MfaService(_repo, dataProtection, _cache);
+        _mfa = new MfaService(_repo, tokens, dataProtection, _cache);
         _sut = new AuthService(_repo, hasher, tokens, _email, _mfa);
     }
 
@@ -543,6 +543,34 @@ public sealed class AuthServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task MfaSetup_SecretIsEncryptedAtRest_NotPlaintext()
+    {
+        await _sut.RegisterAsync(new RegisterRequest(
+            "mfaencrypt@example.com", "SecurePass1", "User"));
+        var verToken = _email.SentMessages[0].Token;
+        await _sut.VerifyEmailAsync(new VerifyEmailRequest(verToken));
+
+        var loginResult = await _sut.LoginAsync(new LoginRequest(
+            "mfaencrypt@example.com", "SecurePass1"));
+        Assert.NotNull(loginResult.Value);
+        Assert.NotNull(loginResult.Value.User);
+        var userId = loginResult.Value.User.Id;
+
+        var result = await _mfa.SetupMfaAsync(userId);
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(result.Value);
+
+        var user = await _repo.GetByPublicIdAsync(userId);
+        Assert.NotNull(user);
+        Assert.NotNull(user!.MfaSecret);
+
+        // The plaintext secret (Base32) must differ from the stored MfaSecret (Base64 of protected bytes).
+        // This proves SetupMfaAsync transforms the key before storage via IDataProtector.
+        Assert.NotEqual(result.Value.Secret, user.MfaSecret);
+        Assert.DoesNotContain(result.Value.Secret, user.MfaSecret, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task MfaVerify_WithValidCode_EnablesMfaAndReturnsBackupCodes()
     {
         await _sut.RegisterAsync(new RegisterRequest(
@@ -710,7 +738,7 @@ public sealed class AuthServiceTests : IDisposable
         var validCode = totp.ComputeTotp();
 
         // Authenticate with MFA
-        var result = await _sut.AuthenticateWithMfaAsync(mfaToken!, validCode);
+        var result = await _mfa.AuthenticateWithMfaAsync(mfaToken!, validCode);
 
         Assert.True(result.IsSuccess);
         Assert.NotNull(result.Value);
@@ -739,7 +767,7 @@ public sealed class AuthServiceTests : IDisposable
             "mfabadcode2@example.com", "SecurePass1"));
         var mfaToken = mfaLogin.Value!.MfaToken;
 
-        var result = await _sut.AuthenticateWithMfaAsync(mfaToken!, "000000");
+        var result = await _mfa.AuthenticateWithMfaAsync(mfaToken!, "000000");
 
         Assert.True(result.IsFailure);
         Assert.Equal("INVALID_CODE", result.Error?.Code);
@@ -748,7 +776,7 @@ public sealed class AuthServiceTests : IDisposable
     [Fact]
     public async Task AuthenticateWithMfa_WithInvalidToken_ReturnsError()
     {
-        var result = await _sut.AuthenticateWithMfaAsync("invalid-token", "123456");
+        var result = await _mfa.AuthenticateWithMfaAsync("invalid-token", "123456");
 
         Assert.True(result.IsFailure);
         Assert.Equal("INVALID_MFA_TOKEN", result.Error?.Code);
@@ -782,7 +810,7 @@ public sealed class AuthServiceTests : IDisposable
         var mfaToken = mfaLogin.Value!.MfaToken;
 
         // Authenticate with backup code
-        var result = await _sut.AuthenticateWithMfaAsync(mfaToken!, backupCodes[0]);
+        var result = await _mfa.AuthenticateWithMfaAsync(mfaToken!, backupCodes[0]);
 
         Assert.True(result.IsSuccess);
         Assert.NotNull(result.Value);
@@ -814,13 +842,13 @@ public sealed class AuthServiceTests : IDisposable
         var login1 = await _sut.LoginAsync(new LoginRequest(
             "bcused@example.com", "SecurePass1"));
         var token1 = login1.Value!.MfaToken;
-        await _sut.AuthenticateWithMfaAsync(token1!, backupCodes[0]);
+        await _mfa.AuthenticateWithMfaAsync(token1!, backupCodes[0]);
 
         // Login again and try the same backup code — should fail
         var login2 = await _sut.LoginAsync(new LoginRequest(
             "bcused@example.com", "SecurePass1"));
         var token2 = login2.Value!.MfaToken;
-        var result = await _sut.AuthenticateWithMfaAsync(token2!, backupCodes[0]);
+        var result = await _mfa.AuthenticateWithMfaAsync(token2!, backupCodes[0]);
 
         Assert.True(result.IsFailure);
         // Service falls through TOTP path and returns TOTP's INVALID_CODE
@@ -851,7 +879,7 @@ public sealed class AuthServiceTests : IDisposable
         var mfaToken = mfaLogin.Value!.MfaToken;
 
         // Use a code that is neither a valid TOTP nor a valid backup code
-        var result = await _sut.AuthenticateWithMfaAsync(mfaToken!, "XXXXXXXX");
+        var result = await _mfa.AuthenticateWithMfaAsync(mfaToken!, "XXXXXXXX");
 
         Assert.True(result.IsFailure);
         // Service falls through TOTP path and returns TOTP's INVALID_CODE

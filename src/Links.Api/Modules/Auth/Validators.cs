@@ -66,8 +66,10 @@ public sealed class MfaAuthenticateRequestValidator : AbstractValidator<MfaAuthe
 
         RuleFor(x => x.Code)
             .NotEmpty().WithMessage("Verification code is required.")
-            .Length(6).WithMessage("Verification code must be 6 digits.")
-            .Matches(@"^\d{6}$").WithMessage("Verification code must be numeric.");
+            .Must(code =>
+                (code.Length == 6 && code.All(char.IsDigit)) ||
+                (code.Length == 8 && code.All(c => c is >= 'A' and <= 'Z' or >= '2' and <= '7')))
+            .WithMessage("Code must be a 6-digit TOTP code or an 8-character backup code (A-Z, 2-7).");
     }
 }
 

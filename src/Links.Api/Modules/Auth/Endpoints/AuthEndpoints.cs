@@ -143,10 +143,10 @@ public static class AuthEndpoints
 
         group.MapPost("/mfa/authenticate", async (
             MfaAuthenticateRequest request,
-            AuthService authService,
+            MfaService mfaService,
             HttpContext context) =>
         {
-            var result = await authService.AuthenticateWithMfaAsync(
+            var result = await mfaService.AuthenticateWithMfaAsync(
                 request.MfaToken, request.Code);
 
             if (result.IsFailure)

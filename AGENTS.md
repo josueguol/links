@@ -41,7 +41,8 @@ Necesito aclarar esto antes de modificar código:
 - No introducir EF Core, otro ORM, framework UI, CQRS/Mediator, AutoMapper, Clean Architecture completa, Generic Repository ni Unit of Work artificial sin aprobacion explicita.
 - No introducir abstracciones, capas, patrones o librerias si no hay una necesidad clara.
 - Preferir cambios pequenos, simples y faciles de revisar.
-- Mantener funciones, clases y archivos dentro de los limites definidos en `PROJECT_RULES.md`.
+- Mantener funciones, clases y archivos de código productivo dentro de los límites definidos en `PROJECT_RULES.md`.
+- En archivos de prueba (`src/Links.Tests/**`, `frontend/tests/**`) el límite de tamaño es una guía blanda. Dividir solo por cohesión semántica (por SUT o por feature), nunca por conteo de líneas. Ver sección "Archivos de prueba" en `PROJECT_RULES.md`.
 - Si encuentra problemas no relacionados con la solicitud, reportarlos y preguntar antes de corregir.
 
 ## Flujo recomendado para el agente

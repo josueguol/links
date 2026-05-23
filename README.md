@@ -159,11 +159,13 @@ opencode
 - `.opencode/skills/project-rules/SKILL.md` como skill local.
 - `.opencode/agents/*.md` como agentes de proyecto.
 
-3. Agentes locales disponibles:
+3. Modos y agentes:
 
-- `project-planner`: analiza y propone planes sin editar archivos.
-- `project-builder`: implementa cambios pequenos con aprobacion para editar y ejecutar comandos.
-- `project-reviewer`: revisa cambios sin editar archivos.
+- Usa los modos por defecto de OpenCode:
+  - `plan` (default al iniciar): analiza y propone planes sin modificar archivos. Las reglas del proyecto (`AGENTS.md` + `PROJECT_RULES.md`) se cargan automaticamente.
+  - `build`: implementa cambios pequenos con aprobacion para editar y ejecutar comandos. Las reglas de codificacion aplican aqui.
+- Subagente local disponible:
+  - `project-reviewer`: invocable desde el agente principal para revisar cambios sin editar archivos.
 
 ## Archivos de configuracion
 
@@ -171,7 +173,7 @@ opencode
 - `PROJECT_RULES.md`: fuente de verdad con reglas obligatorias.
 - `opencode.json`: configuracion de OpenCode (permisos, instrucciones, skills).
 - `.opencode/skills/project-rules/SKILL.md`: skill local con reglas operativas.
-- `.opencode/agents/*.md`: agentes del proyecto.
+- `.opencode/agents/*.md`: subagentes del proyecto (solo `project-reviewer`).
 
 ## Seguridad
 

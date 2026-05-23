@@ -42,7 +42,11 @@ public static class AuthServiceExtensions
             ?? throw new InvalidOperationException("Jwt:Secret is not configured.");
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret));
 
-        // Data Protection — persist key ring to file system for Docker/production
+        // Data Protection — persist key ring to file system for Docker/production.
+        // The key ring is used to encrypt MFA TOTP secrets at rest (via IDataProtector in MfaService).
+        // For local dev, keys live in ./keys (or the path configured via DataProtection:KeyDirectory).
+        // For production/Docker, mount a persistent volume at the configured path so keys survive restarts.
+        // Without stable keys, existing MFA secrets become undecryptable after redeployment.
         var dataProtectionKeyDir = configuration["DataProtection:KeyDirectory"] ?? "./keys";
         services.AddDataProtection()
             .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeyDir))

@@ -10,15 +10,18 @@ namespace Links.Api.Modules.Auth;
 public sealed class MfaService
 {
     private readonly IUserRepository _repo;
+    private readonly TokenService _tokens;
     private readonly IDataProtector _protector;
     private readonly IMemoryCache _cache;
 
     public MfaService(
         IUserRepository repo,
+        TokenService tokens,
         IDataProtectionProvider dataProtection,
         IMemoryCache cache)
     {
         _repo = repo;
+        _tokens = tokens;
         _protector = dataProtection.CreateProtector("Links.MfaSecret");
         _cache = cache;
     }
@@ -157,6 +160,57 @@ public sealed class MfaService
 
         return new Error("INVALID_BACKUP_CODE", "Invalid or already used backup code.");
     }
+
+    // --- MFA authenticate (second factor) ---
+
+    public async Task<Result<AuthResponse>> AuthenticateWithMfaAsync(string mfaToken, string code)
+    {
+        var userId = ConsumeLoginToken(mfaToken);
+        if (userId is null)
+            return new Error("INVALID_MFA_TOKEN", "Invalid or expired MFA token.");
+
+        // Try TOTP first
+        var totpResult = await VerifyTotpCodeOnlyAsync(userId.Value, code);
+        if (totpResult.IsSuccess)
+            return await CreateAuthResponseAsync(totpResult.Value!);
+
+        // If TOTP fails, try backup code
+        if (totpResult.Error?.Code == "INVALID_CODE")
+        {
+            var backupResult = await VerifyBackupCodeAsync(userId.Value, code);
+            if (backupResult.IsSuccess)
+                return await CreateAuthResponseAsync(backupResult.Value!);
+        }
+
+        return totpResult.Error!.Value;
+    }
+
+    public async Task<AuthResponse> CreateAuthResponseAsync(User user)
+    {
+        var refreshToken = _tokens.GenerateRefreshToken();
+        var family = Guid.NewGuid();
+
+        await _repo.CreateRefreshTokenAsync(new RefreshToken
+        {
+            UserId = user.Id,
+            TokenHash = _tokens.HashToken(refreshToken),
+            Family = family,
+            ExpiresAt = DateTimeOffset.UtcNow.AddDays(30),
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        return new AuthResponse(
+            _tokens.GenerateAccessToken(user),
+            refreshToken,
+            MapUser(user));
+    }
+
+    private static UserResponse MapUser(User user) => new(
+        user.PublicId,
+        user.Email,
+        user.DisplayName,
+        user.EmailVerifiedAt is not null,
+        user.MfaEnabled);
 
     private static string[] GenerateBackupCodes()
     {

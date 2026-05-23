@@ -116,7 +116,7 @@ public sealed class AuthService
                 MfaToken: mfaToken);
         }
 
-        var auth = await GenerateAuthResponseAsync(user);
+        var auth = await _mfa.CreateAuthResponseAsync(user);
         return new LoginResult(
             auth.AccessToken,
             auth.RefreshToken,
@@ -207,6 +207,13 @@ public sealed class AuthService
         return new SuccessResponse(genericMessage);
     }
 
+    private static UserResponse MapUser(User user) => new(
+        user.PublicId,
+        user.Email,
+        user.DisplayName,
+        user.EmailVerifiedAt is not null,
+        user.MfaEnabled);
+
     // --- Reset password ---
 
     public async Task<Result<SuccessResponse>> ResetPasswordAsync(ResetPasswordRequest request)
@@ -238,67 +245,4 @@ public sealed class AuthService
 
         return new SuccessResponse("Password has been reset successfully.");
     }
-
-    // --- Private helpers ---
-
-    private async Task<AuthResponse> GenerateAuthResponseAsync(User user)
-    {
-        var refreshToken = _tokens.GenerateRefreshToken();
-        var family = Guid.NewGuid();
-
-        await _repo.CreateRefreshTokenAsync(new RefreshToken
-        {
-            UserId = user.Id,
-            TokenHash = _tokens.HashToken(refreshToken),
-            Family = family,
-            ExpiresAt = DateTimeOffset.UtcNow.AddDays(30),
-            CreatedAt = DateTimeOffset.UtcNow
-        });
-
-        return new AuthResponse(
-            _tokens.GenerateAccessToken(user),
-            refreshToken,
-            MapUser(user));
-    }
-
-    // --- MFA authenticate (second factor) ---
-
-    public async Task<Result<AuthResponse>> AuthenticateWithMfaAsync(string mfaToken, string code)
-    {
-        var userId = _mfa.ConsumeLoginToken(mfaToken);
-        if (userId is null)
-            return new Error("INVALID_MFA_TOKEN", "Invalid or expired MFA token.");
-
-        // Try TOTP first
-        var totpResult = await _mfa.VerifyTotpCodeOnlyAsync(userId.Value, code);
-        if (totpResult.IsSuccess)
-            return await GenerateAuthResponseAsync(totpResult.Value!);
-
-        // If TOTP fails, try backup code
-        if (totpResult.Error?.Code == "INVALID_CODE")
-        {
-            var backupResult = await _mfa.VerifyBackupCodeAsync(userId.Value, code);
-            if (backupResult.IsSuccess)
-                return await GenerateAuthResponseAsync(backupResult.Value!);
-        }
-
-        return totpResult.Error!.Value;
-    }
-
-    private static UserResponse MapUser(User user) => new(
-        user.PublicId,
-        user.Email,
-        user.DisplayName,
-        user.EmailVerifiedAt is not null,
-        user.MfaEnabled);
 }
-
-public sealed record SuccessResponse(string Message);
-
-public sealed record LoginResult(
-    string? AccessToken,
-    string? RefreshToken,
-    UserResponse? User,
-    bool MfaRequired,
-    string? MfaToken
-);

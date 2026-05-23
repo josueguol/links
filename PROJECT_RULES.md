@@ -373,9 +373,33 @@ Reglas:
 
 ### Archivos
 
+Aplica a **código productivo** (`src/Links.Api/**`, `frontend/src/**`, repositories, services, endpoints, validators, DTOs, hubs, componentes):
+
 - Máximo recomendado: 300 líneas.
 - Máximo permitido: 500 líneas.
-- Si un archivo supera el límite, proponer una división antes de modificarlo.
+- Si un archivo de código productivo supera el límite, proponer una división antes de modificarlo.
+
+### Archivos de prueba
+
+Aplica a `src/Links.Tests/**` y `frontend/tests/**` (o equivalentes).
+
+Los límites de archivos productivos **no aplican como límite duro** a archivos de pruebas. En tests, el tamaño es una guía blanda, no un gate.
+
+Reglas para tests:
+
+- No dividir un archivo de pruebas solo por conteo de líneas.
+- Dividir solo cuando exista un **eje semántico claro**:
+  - Un archivo de tests por SUT (clase bajo prueba). Si producción se divide en `AuthService` y `MfaService`, los tests deben reflejar esa separación: `AuthServiceTests` y `MfaServiceTests`.
+  - O por feature/caso de uso cuando el SUT es grande y los grupos de pruebas son independientes (`AuthService_LoginTests`, `AuthService_RegisterTests`).
+- Extraer **fixtures, fakes, builders y helpers** a archivos compartidos (`AuthTestFixture.cs`, `FakeUserRepository.cs`, `UserBuilder.cs`) cuando reduzcan ruido real, no para inflar/desinflar conteos.
+- Señal blanda sugerida: si un archivo de tests supera ~800 líneas o mezcla más de un SUT, evaluar división por los criterios anteriores. Si no hay eje semántico claro, dejarlo y documentar el motivo en el PR.
+- La cohesión por SUT pesa más que el conteo. Un `AuthServiceTests.cs` de 1000 líneas, todas sobre `AuthService`, es legítimo.
+
+Prohibido en tests:
+
+- Dividir por número arbitrario (ej. "parte 1 / parte 2") sin criterio semántico.
+- Romper cohesión de un mismo SUT entre varios archivos sin razón clara.
+- Duplicar fixtures/fakes entre archivos para evitar el split correcto.
 
 ---
 
@@ -551,7 +575,7 @@ Antes de terminar, el agente debe validar:
 - No hay código muerto.
 - No hay duplicación innecesaria.
 - Los métodos respetan el límite de líneas.
-- Las clases respetan el límite de tamaño.
+- Las clases de código productivo respetan el límite de tamaño. En tests, el tamaño es guía blanda; la cohesión por SUT manda.
 - La solución hace solo lo solicitado.
 - No se introdujeron dependencias sin aprobación.
 - No se asumió comportamiento no confirmado.

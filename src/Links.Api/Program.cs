@@ -2,6 +2,7 @@ using FluentValidation;
 using Links.Api.Common;
 using Links.Api.Modules.Auth;
 using Links.Api.Modules.Auth.Endpoints;
+using Links.Api.Modules.Posts;
 using Links.Api.Modules.Users;
 using Links.Api.Modules.Users.Endpoints;
 
@@ -10,6 +11,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Modules
 builder.Services.AddAuthModule(builder.Configuration, builder.Environment.IsDevelopment());
 builder.Services.AddScoped<UserService>();
+builder.Services.AddPostsModule();
 
 // FluentValidation
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
@@ -25,5 +27,6 @@ app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 // Endpoints
 app.MapAuthEndpoints();
 app.MapUsersEndpoints();
+app.MapPostsEndpoints();
 
 app.Run();

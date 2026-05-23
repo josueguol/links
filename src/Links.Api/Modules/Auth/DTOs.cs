@@ -42,3 +42,15 @@ public sealed record MfaVerifyRequest(string Code);
 public sealed record MfaVerifyResponse(string[] BackupCodes);
 
 public sealed record MfaAuthenticateRequest(string MfaToken, string Code);
+
+// --- General ---
+
+public sealed record SuccessResponse(string Message);
+
+public sealed record LoginResult(
+    string? AccessToken,
+    string? RefreshToken,
+    UserResponse? User,
+    bool MfaRequired,
+    string? MfaToken
+);
