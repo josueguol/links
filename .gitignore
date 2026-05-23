@@ -1,0 +1,37 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# OpenCode local/runtime data
+.opencode/sessions/
+.opencode/logs/
+.opencode/cache/
+.opencode/*.local.*
+
+# Build outputs
+bin/
+obj/
+dist/
+build/
+node_modules/
+
+# Test / coverage outputs
+coverage/
+**/TestResults/
+*.coverage
+*.coverage.xml
+*.cobertura.xml
+*.trx
+
+# Security scan outputs
+*.sarif
+trivy-*.json
+
+# Lefthook local cache
+.lefthook-local.yml
+
+# OS/editor files
+.DS_Store
+.vscode/
+.idea/

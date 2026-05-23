@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat code coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <ExcludeByFile>
+            **/Program.cs,**/DTOs.cs,**/Endpoints/**/*.cs,**/Properties/**/*.cs,**/obj/**/*.cs,**/bin/**/*.cs,**/Migrations/**/*.cs,**/*.Designer.cs,**/launchSettings.json
+          </ExcludeByFile>
+          <Exclude>
+            [*.Tests]*,[*]*.AssemblyInfo,[*]*.GlobalUsings,[*]Microsoft.*,[*]System.*
+          </Exclude>
+          <ExcludeByAttribute>
+            Obsolete,GeneratedCodeAttribute,CompilerGeneratedAttribute,ExcludeFromCodeCoverageAttribute
+          </ExcludeByAttribute>
+          <SkipAutoProps>true</SkipAutoProps>
+          <DeterministicReport>true</DeterministicReport>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

@@ -1,0 +1,14 @@
+{
+  "name": "links-root",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Repo root: holds commit lint tooling. Frontend lives under ./frontend.",
+  "scripts": {
+    "commitlint": "commitlint --edit",
+    "lefthook:install": "lefthook install"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.6.1",
+    "@commitlint/config-conventional": "^19.6.0"
+  }
+}

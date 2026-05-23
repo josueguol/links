@@ -1,0 +1,38 @@
+# Git hooks via lefthook. Install: `lefthook install`.
+# Requires: dotnet SDK, node (frontend), gitleaks binary.
+
+pre-commit:
+  parallel: true
+  commands:
+    dotnet-format:
+      glob: "*.{cs,csproj,props,targets,sln,slnx}"
+      run: dotnet format Links.slnx --verify-no-changes --include {staged_files}
+      stage_fixed: false
+    eslint:
+      glob: "frontend/src/**/*.{ts,tsx,js,jsx,mjs,cjs}"
+      root: "frontend/"
+      run: npx --no-install eslint {staged_files}
+    prettier:
+      glob: "frontend/**/*.{ts,tsx,js,jsx,json,css,html,md}"
+      root: "frontend/"
+      run: npx --no-install prettier --check {staged_files}
+    tsc-frontend:
+      glob: "frontend/**/*.{ts,tsx}"
+      root: "frontend/"
+      run: npx --no-install tsc --noEmit
+    gitleaks:
+      run: gitleaks protect --staged --redact --verbose
+
+commit-msg:
+  commands:
+    commitlint:
+      run: npx --no-install commitlint --edit {1}
+
+pre-push:
+  commands:
+    backend-build:
+      run: dotnet build Links.slnx --nologo
+    backend-test:
+      run: dotnet test Links.slnx --no-build --nologo
+    frontend-build:
+      run: npm --prefix frontend run build

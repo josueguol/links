@@ -1,0 +1,15 @@
+# Default owner for the repo
+*                                @josueguol
+
+# Critical paths require explicit review
+/.github/                        @josueguol
+/.github/workflows/              @josueguol
+/Directory.Build.props           @josueguol
+/lefthook.yml                    @josueguol
+/commitlint.config.js            @josueguol
+/renovate.json                   @josueguol
+/PROJECT_RULES.md                @josueguol
+/AGENTS.md                       @josueguol
+/SECURITY.md                     @josueguol
+/Dockerfile                      @josueguol
+/src/Links.Api/Modules/Auth/     @josueguol
